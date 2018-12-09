@@ -1,0 +1,141 @@
+1. export views to file
+2. load file into table view_data_sky
+3. list missing header view
+   create table view_missing_header as 
+    (select xv_name from ( select ......)
+     ) with data;
+4. list missing locking view
+   create table view_used_table as
+    (select xv_name,table_name from ( select .....)
+    ) with data;
+
+   create table view_locking_table as
+    (select xv_name,table_name from ( select .....)
+    ) with data;
+     
+   create table view_missing_locking as
+    (select xv_name,table_name 
+      from view_used_table 
+      where (xv_name,table_name) is not in 
+       (select xv_name,table_name 
+        from view_locking_table)    
+    ) with data;  
+
+   create table view_unused_table as
+    (select xv_name,table_name 
+      from view_locking_table 
+      where (xv_name,table_name) is not in 
+       (select xv_name,table_name 
+        from view_used_table)    
+    ) with data; 
+ 
+5. list missing klook_union_id 
+   create table view_missing_klook_union_id as
+    (select a.xv_name 
+     from 
+      ( 
+       (select vx_name from view_data_sky 
+         where view_text like '%klook_unoin_id%'  
+        ) a
+       join 
+       (select vx_name from view_data_sky 
+        where view_text like '%klook_unoin_id%'  
+        ) b
+        on a.xv_name = b.xv_name
+         where b.xv_name is null
+       )
+      ) with data;   
+6. Generate new view for missing header
+   create table view_data_sky_new as 
+  (
+   sel ......
+   ) with data;
+7. Generate new view for missing locking 
+
+   remove unused table/view in locking list
+   create table view_data_sky_new as 
+  (
+   sel* from view_data_sky a
+   where a.view_text like '%locking%' 
+      and  a.view_text not in any like 
+       ( select '%' ||b.table_name||'%' 
+         from view_unused_table b
+         where a.xv_name = b.xv_name 
+         ) 
+   ) with data;
+  
+  create table view_data_sky_new as 
+  (
+   sel ......
+   ) with data;
+ 
+8. Handle klook_unoin_id
+a. no union key word
+  create table view_missing_klook_union_id_simple
+  as (
+      select a.xv_name 
+      from view_missing_klook_union_id  aa  
+     jion 
+     (select a.xv_name 
+       from view_data_sky a
+       join view_missing_klook_union_id b
+       on a.xv_name = b.xv_name
+       where view_text like '%union%'
+       group by 1
+      ) bb
+      on aa.xv_name= bb.xv_name
+      ) with data;
+
+b. union all key word
+  create table view_missing_klook_union_id_middle
+  as (
+       select a.xv_name 
+       from view_data_sky a
+       join view_missing_klook_union_id b
+       on a.xv_name = b.xv_name
+       where view_text like '%union all%'
+       group by 1
+      ) with data; 
+
+c .compect
+  select xv_name from view_missing_klook_union_id 
+  minus
+  select xv_name from view_missing_klook_union_simple
+  minus
+  select xv_name from view_missing_klook_union_middle
+ 
+d. get sn for As, Select, From and union 
+......
+a1.gen rank_id,
+a2.select rank_id for sn-1  for From
+a3.select rank_id for sn-1 for AS  
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
