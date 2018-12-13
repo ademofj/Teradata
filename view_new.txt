@@ -1,0 +1,212 @@
+--a. remove --
+  create table dd2_wedw.view_data_sky_v1
+  as (select sn,seq_nbr,xv_name,view_text as o_view_text,view_text 
+      from  dd2_wedw.view_data_sky)  with data;
+
+  create table dd2_wedw.view_data_sky_v1_01
+  as dd2_wedw.view_data_sky_v1 with no data;
+  create table dd2_wedw.view_data_sky_v1_02
+  as dd2_wedw.view_data_sky_v1 with no data;
+  create table dd2_wedw.view_data_sky_v1_03
+  as dd2_wedw.view_data_sky_v1 with no data;
+  create table dd2_wedw.view_data_sky_v1_04
+  as dd2_wedw.view_data_sky_v1_03 with no data;
+  create table dd2_wedw.view_data_sky_v1_05
+  as dd2_wedw.view_data_sky_v1_04 with no data;
+  create table dd2_wedw.view_data_sky_v1_06
+  as dd2_wedw.view_data_sky_v1 with no data;
+  create table dd2_wedw.view_data_sky_v1_07
+  as dd2_wedw.view_data_sky_v1_06 with no data;
+  create table dd2_wedw.view_data_sky_v1_08
+  as dd2_wedw.view_data_sky_v1_07 with no data;
+
+ 
+  delete from dd2_wedw.view_data_sky_v1_01;
+  insert into dd2_wedw.view_data_sky_v1_01
+   select sn,seq_nbr,xv_name,o_view_text
+   ,reg((coal(view_text,''))  --repalce \t\r\n null
+   from dd2_wedw.view_data_sky_v1
+  ; 
+  delete from dd2_wedw.view_data_sky_v1_02;
+  insert into dd2_wedw.view_data_sky_v1_02
+   select sn,seq_nbr,xv_name,o_view_text
+     --add space for () and , 
+    ,orepalce(orepalce(orepalce(view_text,')',' ) ' ),'(',' ( '),',',' , ')  
+     from dd2_wedw.view_data_sky_v1_01
+     --remove space and incorrect record
+   where trim(view_text)<>'' or xv_name in ('','')
+  ; 
+
+ 
+  alter table dd2_wedw.view_data_sky_v1_03
+   add is_comment_start integer
+  ,add is_comment_end  integer
+  ,add comment_start_count integer
+  ,add comment_end_count   integer
+  delete from dd2_wedw.view_data_sky_v1_03;
+  insert into dd2_wedw.view_data_sky_v1_03
+   select sn,seq_nbr,xv_name,o_view_text,view_text
+   ,case when view_text like '/*' then 1 else 0 end as is_comment_start
+   ,case when view_text like '*/' then 1 else 0 end as is_comment_end 
+   ,csum(is_comment_start,xv_name,seq_nbr) as comment_start_count
+   ,csum(is_comment_start,xv_name,seq_nbr) as comment_start_end
+   from dd2_wedw.view_data_sky_v1_02
+  group by 3
+  ;   
+
+   --remove first /* and */
+  delete from dd2_wedw.view_data_sky_v1_04;
+  insert into dd2_wedw.view_data_sky_v1_04
+   select sn,seq_nbr,xv_name,o_view_text,view_text
+   ,is_comment_start,is_comment_end,comment_start_count,comment_end_count        
+   from 
+   (select xv_name
+          ,sum(case when comment_start_count = 1 and is_comment_start = 1
+           then sn else 0 end ) as start_sn
+          ,sum(case when comment_start_end = 1 and is_comment_start = 1
+           then sn else 0 end ) as end_sn
+    from dd2_wedw.view_data_sky_v1_03 
+    group by 1) a
+    join dd2_wedw.view_data_sky_v1_03 b
+    on a.xv_name = b.xv_name
+   where b.sn < a.start_sn
+       or b.sn> a.end_sn
+ ;
+
+  --remove second /* and */
+  delete from dd2_wedw.view_data_sky_v1_05;
+  insert into dd2_wedw.view_data_sky_v1_05
+    select sn,seq_nbr,xv_name,o_view_text,view_text
+   ,is_comment_start,is_comment_end,comment_start_count,comment_end_count  
+   from 
+   (select xv_name
+          ,sum(case when comment_start_count = 2 and is_comment_start = 1
+           then sn else 0 end ) as start_sn
+          ,sum(case when comment_start_end = 2 and is_comment_start = 1
+           then sn else 0 end ) as end_sn
+    from dd2_wedw.view_data_sky_v1_04 
+    group by 1) a
+    join dd2_wedw.view_data_sky_v1_04 b
+    on a.xv_name = b.xv_name
+   where b.sn < a.start_sn
+       or b.sn> a.end_sn
+ ;
+
+--remove third  /* and */
+  delete from dd2_wedw.view_data_sky_v1_04;
+  insert into dd2_wedw.view_data_sky_v1_04
+    select sn,seq_nbr,xv_name,o_view_text,view_text
+   ,is_comment_start,is_comment_end,comment_start_count,comment_end_count  
+   from 
+   (select xv_name
+          ,sum(case when comment_start_count = 3 and is_comment_start = 1
+           then sn else 0 end ) as start_sn
+          ,sum(case when comment_start_end = 3 and is_comment_start = 1
+           then sn else 0 end ) as end_sn
+    from dd2_wedw.view_data_sky_v1_05 
+    group by 1) a
+    join dd2_wedw.view_data_sky_v1_05 b
+    on a.xv_name = b.xv_name
+   where b.sn < a.start_sn
+       or b.sn> a.end_sn
+ ;
+
+--remove fouth /* and */
+  delete from dd2_wedw.view_data_sky_v1_05;
+  insert into dd2_wedw.view_data_sky_v1_05
+     select sn,seq_nbr,xv_name,o_view_text,view_text
+   ,is_comment_start,is_comment_end,comment_start_count,comment_end_count   
+   from 
+   (select xv_name
+          ,sum(case when comment_start_count = 4 and is_comment_start = 1
+           then sn else 0 end ) as start_sn
+          ,sum(case when comment_end_count = 4 and is_comment_start = 1
+           then sn else 0 end ) as end_sn
+    from dd2_wedw.view_data_sky_v1_04 
+    group by 1) a
+    join dd2_wedw.view_data_sky_v1_04 b
+    on a.xv_name = b.xv_name
+   where b.sn < a.start_sn
+       or b.sn> a.end_sn
+ ;
+
+
+ --find as
+   alter table dd2_wedw.view_data_sky_v1_06
+   add is_as integer
+  ,add as_count integer
+   ;
+  delete from dd2_wedw.view_data_sky_v1_06;
+  insert into dd2_wedw.view_data_sky_v1_06
+   select sn,seq_nbr,xv_name,o_view_text,view_text
+    ,case when view_text like '% as %' then 1 else 0 end is_as
+    ,csum(is_as,xv_name,seq_nbr) as as_count
+   from dd2_wedw.view_data_sky_v1_05 
+   group by 3  
+ ;
+
+--find sel and from
+   alter table dd2_wedw.view_data_sky_v1_07
+   add is_sel integer
+  ,add is_from integer
+  ,add sel_count integer
+  
+  ;
+  delete from dd2_wedw.view_data_sky_v1_07;
+  insert into dd2_wedw.view_data_sky_v1_07
+   select sn,seq_nbr,xv_name,o_view_text,view_text,is_as,as_count
+    ,case when view_text like any('% sel %','% select %') 
+           then 1 else 0 end as is_sel 
+    ,case when view_text like  '% from %'  
+           then 1 else 0 end as is_from  
+    ,csum(is_sel,xv_name,seq_nbr) as sel_count   
+   from dd2_wedw.view_data_sky_v1_06 
+   group by 3  
+ ;   
+
+ 
+
+--find left_c,sel_c,from_c
+   alter table dd2_wedw.view_data_sky_v1_08
+   add left_C_count integer
+  ,add sel_C_count integer
+  ,add from_C_count integer
+  ,add first_sel_C_count integer
+  ,add rank_id integer;  
+  delete from dd2_wedw.view_data_sky_v1_08;
+  insert into dd2_wedw.view_data_sky_v1_08
+   select sn,seq_nbr,xv_name,o_view_text,view_text
+         ,is_as,as_count,is_sel,is_from,sel_count  
+    ,csum(......) as left_C_count   
+    ,csum(..(case when is_sel = 1 
+         then reg_replace(view_text,' sel[a-z0-9_\(\) ]','')
+         else view_text )...) as      sel_C_count 
+    ,csum(..(case when is_from = 1 
+         then reg_replace(view_text,' from[a-z0-9_\(\) ]','')
+         else view_text )...) as      from_C_count
+    ,rank(......) as rank_id
+   from dd2_wedw.view_data_sky_v1_05 
+   group by 3  
+ ;   
+update a
+from d2_wedw.view_data_sky_v1_08 a
+(select xv_name,sel_C_count 
+ from d2_wedw.view_data_sky_v1_08 
+ where is_sel = 1 and sel_count= 1) b
+set first_sel_C_count = sel_C_count
+where a.xv_name = b.xv_name
+;
+
+update d2_wedw.view_data_sky_v1_08   
+set is_sel  = case when is_sel = 1 and sel_count >1 
+                 and first_sel_C_count <> sel_C_count 
+                 then 0 else is_sel end 
+   ,is_from = case when is_from = 1 and from_count >1 
+                 and first_sel_C_count > from_C_count 
+                 then 0 end  
+                 else is_from end 
+;  
+
+
+
+  
